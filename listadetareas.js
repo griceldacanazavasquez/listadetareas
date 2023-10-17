@@ -106,6 +106,7 @@ const refreshTasksUsingLocalStorage = () => {
     }
 
     taskContent.addEventListener("click", () => handleClick(taskContent));
+    
 
     const deleteItem = document.createElement("i");
     deleteItem.classList.add("far");
@@ -122,8 +123,30 @@ const refreshTasksUsingLocalStorage = () => {
   }
 };
 
+
 refreshTasksUsingLocalStorage();
 
 addTaskButton.addEventListener("click", () => handleAddTask());
 
 inputElement.addEventListener("change", () => handleInputChange());
+
+
+const toastify =document.querySelector(".new-task-button");
+
+toastify.addEventListener("click",()=>{
+Toastify({
+  text: "lista nueva",
+  duration: 3000,
+  destination: "http://127.0.0.1:5501/list-user.html",
+  newWindow: true,
+  close: false,
+  gravity: "top", 
+  position: "right", 
+  stopOnFocus: true, 
+  style: {
+    background: "linear-gradient(to right, #00b09b, #96c93d)",
+  },
+  onClick: function(){} 
+}).showToast();
+})
+

@@ -1,0 +1,19 @@
+{
+  "name": "preentrega-canaza-vasquez",
+  "version": "1.0.0",
+  "description": "",
+  "main": "listadetareas.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/griceldacanazavasquez/listadetareas.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/griceldacanazavasquez/listadetareas/issues"
+  },
+  "homepage": "https://github.com/griceldacanazavasquez/listadetareas#readme"
+}
