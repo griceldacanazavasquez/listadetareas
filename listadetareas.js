@@ -1,18 +1,32 @@
 const inputElement = document.querySelector(".new-task-input");
 const addTaskButton = document.querySelector(".new-task-button");
-
 const tasksContainer = document.querySelector(".tasks-container");
+const postList = document.getElementById("post-list");
 
 const validateInput = () => inputElement.value.trim().length > 0;
 
-const handleAddTask = () => {
+const showNotification = (message, isError = false) => {
+  Toastify({
+    text: message,
+    duration: 3000,
+    style: {
+      background: isError
+        ? "linear-gradient(to right, #ff0000, #ff4d4d)"
+        : "linear-gradient(to right, #00b09b, #96c93d)",
+    },
+  }).showToast();
+};
+
+const handleAddTask = async () => {
   const inputIsValid = validateInput();
 
-  console.log(inputIsValid);
-
   if (!inputIsValid) {
-    return inputElement.classList.add("error");
+    inputElement.classList.add("error");
+    showNotification("No has escrito ninguna tarea", true);
+    return;
   }
+
+  inputElement.classList.remove("error");
 
   const taskItemContainer = document.createElement("div");
   taskItemContainer.classList.add("task-item");
@@ -25,10 +39,15 @@ const handleAddTask = () => {
   const deleteItem = document.createElement("i");
   deleteItem.classList.add("far");
   deleteItem.classList.add("fa-trash-alt");
+  deleteItem.classList.add("delete-icon");
 
-  deleteItem.addEventListener("click", () =>
-    handleDeleteClick(taskItemContainer, taskContent)
-  );
+  deleteItem.addEventListener("click", async () => {
+    if (await handleDeleteClick(taskItemContainer, taskContent)) {
+      showNotification("Tarea eliminada");
+    } else {
+      showNotification("Error al eliminar la tarea", true);
+    }
+  });
 
   taskItemContainer.appendChild(taskContent);
   taskItemContainer.appendChild(deleteItem);
@@ -37,56 +56,74 @@ const handleAddTask = () => {
 
   inputElement.value = "";
 
-  updateLocalStorage();
+  try {
+    obtenerPost();
+    await updateLocalStorage();
+    showNotification("Nueva tarea agregada");
+  } catch (error) {
+    showNotification("Error al agregar la tarea", true);
+  }
 };
 
 const handleClick = (taskContent) => {
   const tasks = tasksContainer.childNodes;
 
   for (const task of tasks) {
-    const currentTaskIsBeingClicked = task.firstChild.isSameNode(taskContent);
+    const currentTask = task.firstChild;
 
-    if (currentTaskIsBeingClicked) {
-      task.firstChild.classList.toggle("completed");
+    if (currentTask && currentTask.isSameNode(taskContent)) {
+      currentTask.classList.toggle("completed");
     }
   }
 
-  updateLocalStorage();
+  updateLocalStorage().catch((error) => {
+    showNotification("Error al actualizar la tarea", true);
+  });
 };
 
-const handleDeleteClick = (taskItemContainer, taskContent) => {
+const handleDeleteClick = async (taskItemContainer, taskContent) => {
   const tasks = tasksContainer.childNodes;
 
   for (const task of tasks) {
-    const currentTaskIsBeingClicked = task.firstChild.isSameNode(taskContent);
-
-    if (currentTaskIsBeingClicked) {
+    if (task.firstChild && task.firstChild.isSameNode(taskContent)) {
       taskItemContainer.remove();
     }
   }
 
-  updateLocalStorage();
+  try {
+    await updateLocalStorage();
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
 
 const handleInputChange = () => {
   const inputIsValid = validateInput();
 
   if (inputIsValid) {
-    return inputElement.classList.remove("error");
+    inputElement.classList.remove("error");
   }
 };
 
-const updateLocalStorage = () => {
+const updateLocalStorage = async () => {
   const tasks = tasksContainer.childNodes;
 
   const localStorageTasks = [...tasks].map((task) => {
     const content = task.firstChild;
-    const isCompleted = content.classList.contains("completed");
+    const isCompleted = content && content.classList.contains("completed");
 
     return { description: content.innerText, isCompleted };
   });
 
-  localStorage.setItem("tasks", JSON.stringify(localStorageTasks));
+  try {
+    await new Promise((resolve) => {
+      localStorage.setItem("tasks", JSON.stringify(localStorageTasks));
+      resolve();
+    });
+  } catch (error) {
+    throw new Error("Error al actualizar el almacenamiento local");
+  }
 };
 
 const refreshTasksUsingLocalStorage = () => {
@@ -106,11 +143,11 @@ const refreshTasksUsingLocalStorage = () => {
     }
 
     taskContent.addEventListener("click", () => handleClick(taskContent));
-    
 
     const deleteItem = document.createElement("i");
     deleteItem.classList.add("far");
     deleteItem.classList.add("fa-trash-alt");
+    deleteItem.classList.add("delete-icon");
 
     deleteItem.addEventListener("click", () =>
       handleDeleteClick(taskItemContainer, taskContent)
@@ -123,30 +160,52 @@ const refreshTasksUsingLocalStorage = () => {
   }
 };
 
-
 refreshTasksUsingLocalStorage();
 
 addTaskButton.addEventListener("click", () => handleAddTask());
-
 inputElement.addEventListener("change", () => handleInputChange());
 
+inputElement.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    handleAddTask();
+  }
+});
 
-const toastify =document.querySelector(".new-task-button");
+// Event listener para obtener y mostrar un "post"
+addTaskButton.addEventListener("click", () => obtenerPost());
 
-toastify.addEventListener("click",()=>{
-Toastify({
-  text: "lista nueva",
-  duration: 3000,
-  destination: "http://127.0.0.1:5501/list-user.html",
-  newWindow: true,
-  close: false,
-  gravity: "top", 
-  position: "right", 
-  stopOnFocus: true, 
-  style: {
-    background: "linear-gradient(to right, #00b09b, #96c93d)",
-  },
-  onClick: function(){} 
-}).showToast();
-})
+async function obtenerPost() {
+  const response = await fetch("https://jsonplaceholder.typicode.com/posts");
+  if (!response.ok) {
+    throw new Error("No se puede obtener el post");
+  }
 
+  const data = await response.json();
+  mostrarPosts(data);
+}
+
+function mostrarPosts(posts) {
+  const indiceAleatorio = Math.floor(Math.random() * posts.length);
+  const comentarioAleatorio = posts[indiceAleatorio];
+
+  const ul = document.createElement('ul');
+  ul.classList.add('new-task-container');
+  ul.style.marginTop = '20px'
+
+  const li = document.createElement('li');
+  li.classList.add('post-card');
+
+  const title = document.createElement('h3');
+  title.textContent = comentarioAleatorio.title.charAt(0).toUpperCase() + comentarioAleatorio.title.slice(1);
+
+  const body = document.createElement('p');
+  body.textContent = comentarioAleatorio.body.charAt(0).toUpperCase() + comentarioAleatorio.body.slice(1);
+
+  li.appendChild(title);
+  li.appendChild(body);
+
+  ul.appendChild(li);
+
+  postList.innerHTML = '';
+  postList.appendChild(ul);
+}
